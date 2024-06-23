@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ros2_bridge/topics/message.dart';
+import 'package:ros2_bridge/interfaces/message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class ROS2Topic {
