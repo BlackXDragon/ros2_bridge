@@ -11,6 +11,8 @@ class ROS2Bridge {
   final String url;
   WebSocketChannel? channel;
 
+  bool isConnected = false;
+
   void Function() connected_callback = () {};
   void Function() disconnected_callback = () {};
   void Function() ws_error_callback = () {};
@@ -40,9 +42,11 @@ class ROS2Bridge {
       channel = WebSocketChannel.connect(Uri.parse(this.url));
       try {
         await channel!.ready;
+        isConnected = true;
         connected_callback();
       } catch (e) {
         // Try to reconnect
+        isConnected = false;
         ws_error_callback();
         reconnect_ws();
         return;
@@ -58,12 +62,14 @@ class ROS2Bridge {
         },
         onDone: () {
           // Try to reconnect
+          isConnected = false;
           disconnected_callback();
           channel!.sink.close();
           reconnect_ws();
         },
         onError: (error) {
           // Try to reconnect
+          isConnected = false;
           ws_error_callback();
           reconnect_ws();
         },
@@ -71,14 +77,87 @@ class ROS2Bridge {
     });
   }
 
+  void sendRaw(String raw_data) {
+    if (channel != null) {
+      channel!.sink.add(raw_data);
+    }
+  }
+
   void parse_data(Map<String, dynamic> data) {
     if (data['op'] == 'subscribe') {
       String topicName = data['topic'];
       Map<String, dynamic> msg = data['msg'];
-      if (topics.containsKey(topicName)) {
-        topics[topicName]!.data_callback(ROS2Message.fromJson(msg));
+      if (topics.containsKey(topicName) && topics[topicName]!.isSubscriber) {
+        print('Received message on topic $topicName');
+        if (topics[topicName]!.data_callback != null) {
+          topics[topicName]!.data_callback!(ROS2Message.fromJson(msg));
+        }
+        topics[topicName]!.streamController.add(ROS2Message.fromJson(msg));
       }
     }
+  }
+
+  ROS2Topic create_subscription(
+    String topicName,
+    ROS2Message messageType,
+    String qosProfile,
+    void Function(ROS2Message) data_callback,
+  ) {
+    if (topics.containsKey(topicName)) {
+      throw Exception(
+          'Topic name is already in use as a publisher or subscriber in this bridge instance');
+    }
+    Map<String, dynamic> message = {
+      'op': 'create_subscription',
+      'topic': topicName,
+      'message_type': messageType.toJson(),
+      'qos_profile': qosProfile,
+    };
+    sendRaw(json.encode(message));
+    topics[topicName] = ROS2Topic(
+      topicName: topicName,
+      messageType: messageType,
+      qosProfile: qosProfile,
+      bridge: this,
+      data_callback: data_callback,
+    );
+    topics[topicName]!.isSubscriber = true;
+
+    return topics[topicName]!;
+  }
+
+  ROS2Topic create_publisher(
+    String topicName,
+    ROS2Message messageType,
+    String qosProfile,
+  ) {
+    if (topics.containsKey(topicName)) {
+      throw Exception(
+          'Topic name is already in use as a publisher or subscriber in this bridge instance');
+    }
+    Map<String, dynamic> message = {
+      'op': 'create_publisher',
+      'topic': topicName,
+      'message_type': messageType.toJson(),
+      'qos_profile': qosProfile,
+    };
+    sendRaw(json.encode(message));
+    topics[topicName] = ROS2Topic(
+      topicName: topicName,
+      messageType: messageType,
+      qosProfile: qosProfile,
+      bridge: this,
+    );
+    topics[topicName]!.isPublisher = true;
+
+    return topics[topicName]!;
+  }
+
+  ROS2Topic get_topic(String topicName) {
+    if (!topics.containsKey(topicName)) {
+      throw Exception('Topic $topicName does not exist');
+    }
+    return topics[topicName]!;
   }
 
   void dispose() {

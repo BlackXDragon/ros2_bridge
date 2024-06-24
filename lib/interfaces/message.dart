@@ -102,7 +102,7 @@ class ROS2Message {
   final String name;
   final List<Field> fields;
 
-  ROS2Message(this.name, this.fields);
+  ROS2Message(this.name, {this.fields = const []});
 
   factory ROS2Message.fromJson(Map<String, dynamic> json) {
     List<Field> fields = [];
@@ -113,7 +113,7 @@ class ROS2Message {
         field['value'],
       ));
     }
-    return ROS2Message(json['name'], fields);
+    return ROS2Message(json['name'], fields: fields);
   }
 
   Map<String, dynamic> toJson() {
