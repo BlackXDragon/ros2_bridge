@@ -1,11 +1,13 @@
 library ros2_bridge;
 
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:ros2_bridge/interfaces/message.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import 'package:ros2_bridge/topics/topics.dart';
+part 'package:ros2_bridge/interfaces/message.dart';
+
+part 'package:ros2_bridge/topics/topics.dart';
 
 class ROS2Bridge {
   final String url;

@@ -1,9 +1,4 @@
-import 'dart:async';
-import 'dart:convert';
-
-import 'package:ros2_bridge/interfaces/message.dart';
-import 'package:ros2_bridge/ros2_bridge.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+part of ros2_bridge;
 
 class ROS2Topic {
   final String topicName;

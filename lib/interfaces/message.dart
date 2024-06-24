@@ -1,3 +1,5 @@
+part of ros2_bridge;
+
 enum FieldType {
   BOOL,
   BYTE,
@@ -99,8 +101,8 @@ class Field {
 }
 
 class ROS2Message {
-  final String name;
-  final List<Field> fields;
+  String name;
+  List<Field> fields;
 
   ROS2Message(this.name, {this.fields = const []});
 
