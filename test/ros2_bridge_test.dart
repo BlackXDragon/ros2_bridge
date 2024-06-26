@@ -27,7 +27,7 @@ class StringMessage extends ROS2Message {
 }
 
 void main() {
-  test('Test ROS2Bridge', () async {
+  test('Test ROS2Bridge Topics', () async {
     ROS2Bridge bridge = ROS2Bridge(
       connected_callback: () {
         print('Connected');
@@ -71,13 +71,22 @@ void main() {
 
     int count = 0;
     try {
-      while (bridge.isConnected) {
+      while (bridge.isConnected && count < 15) {
         pubTopic.publish(StringMessage('Hello from Flutter $count'));
         await Future.delayed(const Duration(seconds: 1), () {});
         count++;
       }
     } finally {
       bridge.dispose();
+    }
+  });
+
+  test('Test ROS2Bridge ActionClient', () async {
+    ROS2Bridge bridge = ROS2Bridge();
+
+    while (!bridge.isConnected) {
+      print('Waiting for connection');
+      await Future.delayed(const Duration(seconds: 1), () {});
     }
   });
 }
