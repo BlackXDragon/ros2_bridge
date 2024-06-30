@@ -28,6 +28,12 @@ class Goal {
   }
 }
 
+class GoalCancelException implements Exception {
+  final String message;
+
+  GoalCancelException(this.message);
+}
+
 class ROS2ActionClient {
   final String actionServerName;
   final ROS2Action actionType;
@@ -88,12 +94,23 @@ class ROS2ActionClient {
     return goal;
   }
 
+  void cancel_goal(String goalID) {
+    if (goals.containsKey(goalID)) {
+      Map<String, dynamic> cancelRequest = {
+        'op': 'cancel_goal',
+        'goalID': goalID,
+        'action_server': actionServerName,
+      };
+      bridge.sendRaw(json.encode(cancelRequest));
+    }
+  }
+
   void updateGoalID(String tempGoalID, String goalID) {
     if (goals.containsKey(tempGoalID)) {
       Goal goal = goals[tempGoalID]!;
       goals.remove(tempGoalID);
-      goals[goalID] = goal;
       goal.goalID = goalID;
+      goals[goalID] = goal;
     }
   }
 
@@ -114,6 +131,21 @@ class ROS2ActionClient {
       goals[goalID]!.completer.complete(resultMessage);
       if (goals[goalID]!.result_callback != null) {
         goals[goalID]!.result_callback!(resultMessage);
+      }
+    }
+  }
+
+  void handleCancelResponse(String goalID, bool success) {
+    if (goals.containsKey(goalID)) {
+      if (success) {
+        goals[goalID]!
+            .completer
+            .completeError(GoalCancelException('Goal was canceled'));
+        goals.remove(goalID);
+      } else {
+        goals[goalID]!
+            .feedbackStreamController
+            .addError(GoalCancelException('Goal was not canceled'));
       }
     }
   }

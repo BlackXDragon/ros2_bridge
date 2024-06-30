@@ -132,6 +132,13 @@ class ROS2Bridge {
       if (actionClients.containsKey(actionServer)) {
         actionClients[actionServer]!.handleResult(goalID, result);
       }
+    } else if (data['op'] == 'action_cancel_response') {
+      String goalID = data['goalID'];
+      String actionServer = data['action_server'];
+      if (actionClients.containsKey(actionServer)) {
+        actionClients[actionServer]!
+            .handleCancelResponse(goalID, data['success']);
+      }
     }
   }
 
