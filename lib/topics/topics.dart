@@ -60,4 +60,8 @@ class ROS2Topic {
     };
     bridge!.sendRaw(json.encode(message));
   }
+
+  void dispose() {
+    streamController.close();
+  }
 }

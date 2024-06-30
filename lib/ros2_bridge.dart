@@ -217,5 +217,8 @@ class ROS2Bridge {
   void dispose() {
     n_instances--;
     channel!.sink.close();
+    for (var topic in topics.values) {
+      topic.dispose();
+    }
   }
 }
