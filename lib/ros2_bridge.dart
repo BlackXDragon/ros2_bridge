@@ -17,6 +17,7 @@ class ROS2Bridge {
   WebSocketChannel? channel;
 
   bool isConnected = false;
+  bool stop = false;
 
   void Function() connected_callback = () {};
   void Function() disconnected_callback = () {};
@@ -58,7 +59,9 @@ class ROS2Bridge {
         // Try to reconnect
         isConnected = false;
         ws_error_callback();
-        reconnect_ws();
+        if (!stop) {
+          reconnect_ws();
+        }
         return;
       }
 
@@ -75,13 +78,17 @@ class ROS2Bridge {
           isConnected = false;
           disconnected_callback();
           channel!.sink.close();
-          reconnect_ws();
+          if (!stop) {
+            reconnect_ws();
+          }
         },
         onError: (error) {
           // Try to reconnect
           isConnected = false;
           ws_error_callback();
-          reconnect_ws();
+          if (!stop) {
+            reconnect_ws();
+          }
         },
       );
     });
@@ -215,10 +222,16 @@ class ROS2Bridge {
   }
 
   void dispose() {
+    stop = true;
     n_instances--;
     channel!.sink.close();
     for (var topic in topics.values) {
       topic.dispose();
+    }
+    for (var actionClient in actionClients.values) {
+      for (var goal in actionClient.goals.values) {
+        goal.dispose();
+      }
     }
   }
 }
