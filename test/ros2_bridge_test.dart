@@ -4,29 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ros2_bridge/ros2_bridge.dart';
 
-class StringMessage extends ROS2Message {
-  StringMessage(String data)
-      : super('std_msgs/msg/String',
-            fields: [Field('data', FieldType.STRING, data)]);
-
-  factory StringMessage.fromROS2Message(ROS2Message message) {
-    if (message.name != 'std_msgs/msg/String') {
-      throw Exception('Invalid message type');
-    }
-    if (message.fields.length != 1) {
-      throw Exception('Invalid number of fields');
-    }
-    if (message.fields[0].name != 'data') {
-      throw Exception('Invalid field name');
-    }
-    if (message.fields[0].type != FieldType.STRING) {
-      throw Exception('Invalid field type');
-    }
-    return StringMessage(message.fields[0].value);
-  }
-
-  String get value => fields[0].value;
-}
+import 'interface_definitions.dart';
 
 void main() {
   test('Test ROS2Bridge Topics', () async {
@@ -40,13 +18,10 @@ void main() {
       ws_error_callback: () {
         print('Error');
       },
-      raw_data_callback: (String raw_data) {
-        print('Raw data: $raw_data');
-      },
     );
 
     while (!bridge.isConnected) {
-      print('Waiting for connection');
+      print('ROS2Bridge Topics Test: Waiting for connection');
       await Future.delayed(const Duration(seconds: 1), () {});
     }
 
@@ -84,11 +59,49 @@ void main() {
   });
 
   test('Test ROS2Bridge ActionClient', () async {
-    ROS2Bridge bridge = ROS2Bridge();
+    ROS2Bridge bridge = ROS2Bridge(
+      connected_callback: () {
+        print('Connected');
+      },
+      disconnected_callback: () {
+        print('Disconnected');
+      },
+      ws_error_callback: () {
+        print('Error');
+      },
+    );
 
     while (!bridge.isConnected) {
-      print('Waiting for connection');
+      print('ROS2Bridge ActionClient Test: Waiting for connection');
       await Future.delayed(const Duration(seconds: 1), () {});
+    }
+
+    ROS2ActionClient actionClient = bridge.create_action_client(
+      'fibonacci',
+      FibonacciAction.empty(),
+    );
+
+    Goal goal = actionClient
+        .send_goal_async(Int32Message(10, field_name: 'order'),
+            feedback_callback: (ROS2Message feedback) {
+      Int32ArrayMessage message = Int32ArrayMessage.fromROS2Message(feedback);
+      print('Feedback: ${message.value}');
+    }, result_callback: (ROS2Message result) {
+      Int32ArrayMessage message = Int32ArrayMessage.fromROS2Message(result);
+      print('Result: ${message.value}');
+    });
+
+    goal.feedbackStream.listen((ROS2Message feedback) {
+      Int32ArrayMessage message = Int32ArrayMessage.fromROS2Message(feedback);
+      print('Feedback Stream: ${message.value}');
+    });
+
+    try {
+      var result = await goal.resultFuture;
+      Int32ArrayMessage message = Int32ArrayMessage.fromROS2Message(result);
+      print('Final Result: ${message.value}');
+    } finally {
+      bridge.dispose();
     }
   });
 }
