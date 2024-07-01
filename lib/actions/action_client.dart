@@ -187,7 +187,7 @@ class ROS2ActionClient {
           goal.statusStreamController.add(GoalStatus.ACTIVE);
           goal.status = GoalStatus.ACTIVE;
           break;
-        case 'COMPLETED':
+        case 'completed':
           goal.statusStreamController.add(GoalStatus.COMPLETED);
           goal.status = GoalStatus.COMPLETED;
           break;
