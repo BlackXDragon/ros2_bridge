@@ -154,6 +154,8 @@ void main() {
       throw Exception('Goal was not cancelled');
     } on GoalCancelException catch (e) {
       print(e.message);
+    } on GoalFailedException catch (e) {
+      print(e.message);
     } finally {
       bridge.dispose();
     }

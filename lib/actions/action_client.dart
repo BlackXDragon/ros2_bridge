@@ -1,15 +1,29 @@
 part of ros2_bridge;
 
+enum GoalStatus {
+  PENDING,
+  REJECTED,
+  ACTIVE,
+  COMPLETED,
+  ABORTED,
+  CANCELED,
+  CANCELING,
+}
+
 class Goal {
   String goalID;
   final ROS2Message goalMessage;
   final StreamController<ROS2Message> feedbackStreamController =
       StreamController<ROS2Message>();
+  final StreamController<GoalStatus> statusStreamController =
+      StreamController<GoalStatus>();
+  GoalStatus status = GoalStatus.PENDING;
   late Future<ROS2Message> resultFuture;
   ROS2Message? result;
   final Completer<ROS2Message> completer = new Completer<ROS2Message>();
 
   Stream<ROS2Message> get feedbackStream => feedbackStreamController.stream;
+  Stream<GoalStatus> get statusStream => statusStreamController.stream;
 
   void Function(ROS2Message)? feedback_callback;
   void Function(ROS2Message)? result_callback;
@@ -32,6 +46,12 @@ class GoalCancelException implements Exception {
   final String message;
 
   GoalCancelException(this.message);
+}
+
+class GoalFailedException implements Exception {
+  final String message;
+
+  GoalFailedException(this.message);
 }
 
 class ROS2ActionClient {
@@ -102,6 +122,8 @@ class ROS2ActionClient {
         'action_server': actionServerName,
       };
       bridge.sendRaw(json.encode(cancelRequest));
+      goals[goalID]!.statusStreamController.add(GoalStatus.CANCELING);
+      goals[goalID]!.status = GoalStatus.CANCELING;
     }
   }
 
@@ -142,11 +164,54 @@ class ROS2ActionClient {
             .completer
             .completeError(GoalCancelException('Goal was canceled'));
         goals.remove(goalID);
-      } else {
-        goals[goalID]!
-            .feedbackStreamController
-            .addError(GoalCancelException('Goal was not canceled'));
       }
+    }
+  }
+
+  void handleGoalStatus(String goalID, String status) {
+    if (goals.containsKey(goalID)) {
+      Goal goal = goals[goalID]!;
+      switch (status) {
+        case 'pending':
+          goal.statusStreamController.add(GoalStatus.PENDING);
+          goal.status = GoalStatus.PENDING;
+          break;
+        case 'rejected':
+          goal.statusStreamController.add(GoalStatus.REJECTED);
+          goal.status = GoalStatus.REJECTED;
+          goal.completer
+              .completeError(GoalFailedException('Goal was rejected'));
+          break;
+        case 'active':
+          goal.statusStreamController.add(GoalStatus.ACTIVE);
+          goal.status = GoalStatus.ACTIVE;
+          break;
+        case 'COMPLETED':
+          goal.statusStreamController.add(GoalStatus.COMPLETED);
+          goal.status = GoalStatus.COMPLETED;
+          break;
+        case 'aborted':
+          goal.statusStreamController.add(GoalStatus.ABORTED);
+          goal.status = GoalStatus.ABORTED;
+          goal.completer.completeError(GoalFailedException('Goal was aborted'));
+          break;
+        case 'canceled':
+          goal.statusStreamController.add(GoalStatus.CANCELED);
+          goal.status = GoalStatus.CANCELED;
+          goal.completer
+              .completeError(GoalFailedException('Goal was canceled'));
+          break;
+        case 'cancel_rejected':
+          goal.statusStreamController.add(GoalStatus.ACTIVE);
+          goal.status = GoalStatus.ACTIVE;
+          break;
+      }
+    }
+  }
+
+  void dispose() {
+    for (Goal goal in goals.values) {
+      goal.dispose();
     }
   }
 }

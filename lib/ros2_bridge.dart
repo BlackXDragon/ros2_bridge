@@ -101,44 +101,57 @@ class ROS2Bridge {
   }
 
   void parse_data(Map<String, dynamic> data) {
-    if (data['op'] == 'subscribe') {
-      String topicName = data['topic'];
-      Map<String, dynamic> msg = data['msg'];
-      if (topics.containsKey(topicName) && topics[topicName]!.isSubscriber) {
-        print('Received message on topic $topicName');
-        if (topics[topicName]!.data_callback != null) {
-          topics[topicName]!.data_callback!(ROS2Message.fromJson(msg));
+    switch (data['op']) {
+      case 'subscribe':
+        String topicName = data['topic'];
+        Map<String, dynamic> msg = data['msg'];
+        if (topics.containsKey(topicName) && topics[topicName]!.isSubscriber) {
+          print('Received message on topic $topicName');
+          if (topics[topicName]!.data_callback != null) {
+            topics[topicName]!.data_callback!(ROS2Message.fromJson(msg));
+          }
+          topics[topicName]!.streamController.add(ROS2Message.fromJson(msg));
         }
-        topics[topicName]!.streamController.add(ROS2Message.fromJson(msg));
-      }
-    } else if (data['op'] == 'update_goal_id') {
-      String tempGoalID = data['tempGoalID'];
-      String goalID = data['goalID'];
-      String actionServer = data['action_server'];
-      if (actionClients.containsKey(actionServer)) {
-        actionClients[actionServer]!.updateGoalID(tempGoalID, goalID);
-      }
-    } else if (data['op'] == 'action_feedback') {
-      String goalID = data['goalID'];
-      String actionServer = data['action_server'];
-      Map<String, dynamic> feedback = data['feedback'];
-      if (actionClients.containsKey(actionServer)) {
-        actionClients[actionServer]!.handleFeedback(goalID, feedback);
-      }
-    } else if (data['op'] == 'action_result') {
-      String goalID = data['goalID'];
-      String actionServer = data['action_server'];
-      Map<String, dynamic> result = data['result'];
-      if (actionClients.containsKey(actionServer)) {
-        actionClients[actionServer]!.handleResult(goalID, result);
-      }
-    } else if (data['op'] == 'action_cancel_response') {
-      String goalID = data['goalID'];
-      String actionServer = data['action_server'];
-      if (actionClients.containsKey(actionServer)) {
-        actionClients[actionServer]!
-            .handleCancelResponse(goalID, data['success']);
-      }
+        break;
+      case 'update_goal_id':
+        String tempGoalID = data['tempGoalID'];
+        String goalID = data['goalID'];
+        String actionServer = data['action_server'];
+        if (actionClients.containsKey(actionServer)) {
+          actionClients[actionServer]!.updateGoalID(tempGoalID, goalID);
+        }
+        break;
+      case 'action_feedback':
+        String goalID = data['goalID'];
+        String actionServer = data['action_server'];
+        Map<String, dynamic> feedback = data['feedback'];
+        if (actionClients.containsKey(actionServer)) {
+          actionClients[actionServer]!.handleFeedback(goalID, feedback);
+        }
+        break;
+      case 'action_result':
+        String goalID = data['goalID'];
+        String actionServer = data['action_server'];
+        Map<String, dynamic> result = data['result'];
+        if (actionClients.containsKey(actionServer)) {
+          actionClients[actionServer]!.handleResult(goalID, result);
+        }
+        break;
+      case 'action_cancel_response':
+        String goalID = data['goalID'];
+        String actionServer = data['action_server'];
+        if (actionClients.containsKey(actionServer)) {
+          actionClients[actionServer]!
+              .handleCancelResponse(goalID, data['success']);
+        }
+        break;
+      case 'goal_status':
+        String goalID = data['goalID'];
+        String actionServer = data['action_server'];
+        if (actionClients.containsKey(actionServer)) {
+          actionClients[actionServer]!.handleGoalStatus(goalID, data['status']);
+        }
+        break;
     }
   }
 
@@ -236,9 +249,7 @@ class ROS2Bridge {
       topic.dispose();
     }
     for (var actionClient in actionClients.values) {
-      for (var goal in actionClient.goals.values) {
-        goal.dispose();
-      }
+      actionClient.dispose();
     }
   }
 }
