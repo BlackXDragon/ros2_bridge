@@ -41,10 +41,14 @@ FieldType strToFieldType(String str) {
       return FieldType.BYTE;
     case 'char':
       return FieldType.CHAR;
+    case 'float':
+      return FieldType.FLOAT64;
     case 'float32':
       return FieldType.FLOAT32;
     case 'float64':
       return FieldType.FLOAT64;
+    case 'int':
+      return FieldType.INT64;
     case 'int8':
       return FieldType.INT8;
     case 'uint8':
@@ -74,10 +78,14 @@ FieldType strToFieldType(String str) {
             return FieldType.BYTE_ARRAY;
           case 'char':
             return FieldType.CHAR_ARRAY;
+          case 'float':
+            return FieldType.FLOAT64_ARRAY;
           case 'float32':
             return FieldType.FLOAT32_ARRAY;
           case 'float64':
             return FieldType.FLOAT64_ARRAY;
+          case 'int':
+            return FieldType.INT64_ARRAY;
           case 'int8':
             return FieldType.INT8_ARRAY;
           case 'uint8':

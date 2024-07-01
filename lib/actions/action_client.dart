@@ -39,6 +39,7 @@ class Goal {
 
   void dispose() {
     feedbackStreamController.close();
+    statusStreamController.close();
   }
 }
 
