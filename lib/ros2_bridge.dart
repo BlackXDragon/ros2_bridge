@@ -12,6 +12,8 @@ part 'package:ros2_bridge/interfaces/action.dart';
 part 'package:ros2_bridge/topics/topics.dart';
 part 'package:ros2_bridge/actions/action_client.dart';
 
+part 'package:ros2_bridge/params/params.dart';
+
 class ROS2Bridge {
   final String url;
   WebSocketChannel? channel;
@@ -29,6 +31,8 @@ class ROS2Bridge {
   Map<String, ROS2Topic> topics = {};
 
   Map<String, ROS2ActionClient> actionClients = {};
+
+  Map<String, Completer> setParamCompleters = {};
 
   ROS2Bridge({
     this.url = 'ws://localhost:9999',
@@ -152,6 +156,16 @@ class ROS2Bridge {
           actionClients[actionServer]!.handleGoalStatus(goalID, data['status']);
         }
         break;
+      case 'set_parameters_result':
+        String opID = data['opID'];
+        List<SetParametersResult> results = setParametersResultListFromJsonObj(
+          data['results'],
+        );
+        if (setParamCompleters.containsKey(opID)) {
+          setParamCompleters[opID]!.complete(results);
+          setParamCompleters.remove(opID);
+        }
+        break;
     }
   }
 
@@ -239,6 +253,26 @@ class ROS2Bridge {
     );
 
     return actionClients[actionServerName]!;
+  }
+
+  Future<List<SetParametersResult>> set_parameters(
+      String node_name, List<Param> params) async {
+    String opID = Random().nextInt(100000).toString();
+
+    List<Map<String, dynamic>> _params = paramListToJsonObj(params);
+    Map<String, dynamic> message = {
+      'op': 'set_parameters',
+      'opID': opID,
+      'node_name': node_name,
+      'params': _params,
+    };
+    sendRaw(json.encode(message));
+
+    Completer<List<SetParametersResult>> completer =
+        Completer<List<SetParametersResult>>();
+    setParamCompleters[opID] = completer;
+
+    return completer.future;
   }
 
   void dispose() {
