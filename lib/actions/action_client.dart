@@ -199,8 +199,8 @@ class ROS2ActionClient {
         case 'canceled':
           goal.statusStreamController.add(GoalStatus.CANCELED);
           goal.status = GoalStatus.CANCELED;
-          goal.completer
-              .completeError(GoalFailedException('Goal was canceled'));
+          // goal.completer
+          //     .completeError(GoalCancelException('Goal was canceled'));
           break;
         case 'cancel_rejected':
           goal.statusStreamController.add(GoalStatus.ACTIVE);
