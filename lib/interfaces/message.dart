@@ -33,7 +33,7 @@ enum FieldType {
   WSTRING_ARRAY,
 }
 
-FieldType strToFieldType(String str) {
+dynamic strToFieldType(String str) {
   switch (str) {
     case 'bool':
       return FieldType.BOOL;
@@ -107,14 +107,50 @@ FieldType strToFieldType(String str) {
           case 'wstring':
             return FieldType.WSTRING_ARRAY;
           default:
-            throw Exception('Invalid message type');
+            {
+              // Check if the array type is a message type
+              String name = str.substring(0, str.length - 2);
+              // Split by '/', add 'msg' to the end of the first part
+              // and join by '/'
+              List<String> parts = name.split('/');
+              if (parts.length == 2) {
+                parts.add(parts[1]);
+                parts[1] = 'msg';
+                name = parts.join('/');
+              }
+              if (ROS2Message.registeredMessages.containsKey(name)) {
+                return ROS2Message.registeredMessages[name];
+              }
+
+              throw Exception('Invalid message type');
+            }
         }
+      } else {
+        // Check if the type is a message type
+        String name = str;
+        // Split by '/', add 'msg' to the end of the first part
+        // and join by '/'
+        List<String> parts = name.split('/');
+        if (parts.length == 2) {
+          parts.add(parts[1]);
+          parts[1] = 'msg';
+          name = parts.join('/');
+        }
+        if (ROS2Message.registeredMessages.containsKey(name)) {
+          return ROS2Message.registeredMessages[name];
+        }
+
+        throw Exception('Invalid message type');
       }
-      throw Exception('Invalid message type');
   }
 }
 
-String FieldTypeToStr(FieldType type) {
+String FieldTypeToStr(dynamic type) {
+  // Check if the type is a message type
+  if (type is ROS2Message) {
+    return type.name;
+  }
+
   switch (type) {
     case FieldType.BOOL:
       return 'bool';
@@ -180,24 +216,38 @@ String FieldTypeToStr(FieldType type) {
           case 'WSTRING':
             return 'wstring[]';
           default:
-            throw Exception('Invalid message type');
+            throw Exception('Invalid message type: $type');
         }
       }
-      throw Exception('Invalid message type');
+      throw Exception('Invalid message type: $type');
   }
 }
 
 class Field {
   final String name;
-  final FieldType type;
-  final dynamic value;
+  final dynamic type;
+  dynamic value;
 
-  Field(this.name, this.type, this.value);
+  Field(this.name, this.type, this.value) {
+    if (type is ROS2Message) {
+      if (value is Map<String, dynamic>) {
+        value = ROS2Message.fromJson(value);
+      } else {
+        value = value;
+      }
+    }
+  }
 }
 
 class ROS2Message {
   String name;
   List<Field> fields;
+
+  static Map<String, ROS2Message> registeredMessages = {};
+
+  static void registerMessage(ROS2Message message) {
+    registeredMessages[message.name] = message;
+  }
 
   ROS2Message(this.name, {this.fields = const []});
 
@@ -209,6 +259,12 @@ class ROS2Message {
         strToFieldType(field['type']),
         field['value'],
       ));
+      if (fields.last.value is Map<String, dynamic>) {
+        fields.last.value = ROS2Message.fromJson(fields.last.value);
+      }
+      if (fields.last.value is ROS2Message) {
+        fields.last.value.name = fields.last.type.name;
+      }
     }
     return ROS2Message(json['name'], fields: fields);
   }
@@ -226,5 +282,30 @@ class ROS2Message {
       'name': name,
       'fields': fields,
     };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is ROS2Message) {
+      if (name != other.name) {
+        return false;
+      }
+      if (fields.length != other.fields.length) {
+        return false;
+      }
+      for (int i = 0; i < fields.length; i++) {
+        if (fields[i].name != other.fields[i].name) {
+          return false;
+        }
+        if (fields[i].type != other.fields[i].type) {
+          return false;
+        }
+        if (fields[i].value != other.fields[i].value) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
   }
 }

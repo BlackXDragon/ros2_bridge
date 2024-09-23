@@ -1,6 +1,6 @@
 name: ros2_bridge
-description: "A new Flutter package project."
-version: 0.5.5
+description: "Package to bridge Flutter with ROS2 through websocket."
+version: 0.5.6
 homepage:
 
 environment:

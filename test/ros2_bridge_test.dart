@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ros2_bridge/ros2_bridge.dart';
@@ -7,6 +8,11 @@ import 'package:ros2_bridge/ros2_bridge.dart';
 import 'interface_definitions.dart';
 
 void main() {
+  // Register the message types
+  for (var message in messageTypes) {
+    ROS2Message.registerMessage(message);
+  }
+
   test('Test ROS2Bridge Topics', () async {
     ROS2Bridge bridge = ROS2Bridge(
       connected_callback: () {
@@ -27,29 +33,29 @@ void main() {
 
     ROS2Topic pubTopic = bridge.create_publisher(
       'pub_test',
-      StringMessage(''),
+      StringMessage(data: ''),
       'default',
     );
 
     ROS2Topic subTopic = bridge.create_subscription(
       'sub_test',
-      StringMessage(''),
+      StringMessage(data: ''),
       'default',
       (ROS2Message data) {
         StringMessage message = StringMessage.fromROS2Message(data);
-        print('Callback received: ${message.value}');
+        print('Callback received: ${message.data}');
       },
     );
 
     subTopic.stream.listen((ROS2Message data) {
       var msg = StringMessage.fromROS2Message(data);
-      print('Stream received: ${msg.value}');
+      print('Stream received: ${msg.data}');
     });
 
     int count = 0;
     try {
       while (bridge.isConnected && count < 15) {
-        pubTopic.publish(StringMessage('Hello from Flutter $count'));
+        pubTopic.publish(StringMessage(data: 'Hello from Flutter $count'));
         await Future.delayed(const Duration(seconds: 1), () {});
         count++;
       }
@@ -143,7 +149,7 @@ void main() {
       print('Feedback Stream: ${message.value}');
     });
 
-    Future.delayed(Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () {
       actionClient.cancel_goal(goal.goalID);
     });
 

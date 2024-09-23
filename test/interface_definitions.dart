@@ -1,27 +1,37 @@
 import 'package:ros2_bridge/ros2_bridge.dart';
 
+// String Message
+// string data
 class StringMessage extends ROS2Message {
-  StringMessage(String data)
+  final String field_name;
+  StringMessage({String data = '', this.field_name = 'data'})
       : super('std_msgs/msg/String',
-            fields: [Field('data', FieldType.STRING, data)]);
+            fields: [Field(field_name, FieldType.STRING, data)]);
 
   factory StringMessage.fromROS2Message(ROS2Message message) {
     if (message.name != 'std_msgs/msg/String') {
-      throw Exception('Invalid message type');
+      throw Exception(
+          'Invalid message type. Expected std_msgs/msg/String. Got ${message.name}');
     }
     if (message.fields.length != 1) {
       throw Exception('Invalid number of fields');
     }
-    if (message.fields[0].name != 'data') {
-      throw Exception('Invalid field name');
-    }
     if (message.fields[0].type != FieldType.STRING) {
-      throw Exception('Invalid field type');
+      throw Exception(
+          'Invalid field type. Expected string. Got ${FieldTypeToStr(message.fields[0].type)}');
     }
-    return StringMessage(message.fields[0].value);
+    return StringMessage(
+      data: message.fields[0].value as String,
+      field_name: message.fields[0].name,
+    );
   }
 
-  String get value => fields[0].value;
+  @override
+  String toString() {
+    return 'StringMessage($field_name = $data)';
+  }
+
+  String get data => fields[0].value as String;
 }
 
 class Int32Message extends ROS2Message {
@@ -84,3 +94,42 @@ class FibonacciAction extends ROS2Action {
 
   factory FibonacciAction.empty() => FibonacciAction();
 }
+
+class BoolMessage extends ROS2Message {
+  final String field_name;
+  BoolMessage({bool data = false, this.field_name = 'data'})
+      : super('std_msgs/msg/Bool',
+            fields: [Field(field_name, FieldType.BOOL, data)]);
+
+  factory BoolMessage.fromROS2Message(ROS2Message message) {
+    if (message.name != 'std_msgs/msg/Bool') {
+      throw Exception(
+          'Invalid message type. Expected std_msgs/msg/Bool. Got ${message.name}');
+    }
+    if (message.fields.length != 1) {
+      throw Exception('Invalid number of fields');
+    }
+    if (message.fields[0].type != FieldType.BOOL) {
+      throw Exception(
+          'Invalid field type. Expected bool. Got ${FieldTypeToStr(message.fields[0].type)}');
+    }
+    return BoolMessage(
+      data: message.fields[0].value as bool,
+      field_name: message.fields[0].name,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'BoolMessage($field_name = $data)';
+  }
+
+  bool get data => fields[0].value as bool;
+}
+
+List<ROS2Message> messageTypes = [
+  StringMessage(),
+  Int32Message(0),
+  Int32ArrayMessage([]),
+  BoolMessage(),
+];

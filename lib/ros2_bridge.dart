@@ -49,12 +49,12 @@ class ROS2Bridge {
   }
 
   static void _empty_callback() {}
-  static void _empty_raw_data_callback(String raw_data) {}
+  static void _empty_raw_data_callback(String rawData) {}
 
   void reconnect_ws() async {
     // Wait for 1 second before reconnecting
     Future.delayed(const Duration(seconds: 1), () async {
-      channel = WebSocketChannel.connect(Uri.parse(this.url));
+      channel = WebSocketChannel.connect(Uri.parse(url));
       try {
         await channel!.ready;
         isConnected = true;
@@ -98,9 +98,9 @@ class ROS2Bridge {
     });
   }
 
-  void sendRaw(String raw_data) {
+  void sendRaw(String rawData) {
     if (channel != null) {
-      channel!.sink.add(raw_data);
+      channel!.sink.add(rawData);
     }
   }
 
@@ -173,7 +173,7 @@ class ROS2Bridge {
     String topicName,
     ROS2Message messageType,
     String qosProfile,
-    void Function(ROS2Message) data_callback,
+    void Function(ROS2Message) dataCallback,
   ) {
     if (topics.containsKey(topicName)) {
       throw Exception(
@@ -191,7 +191,7 @@ class ROS2Bridge {
       messageType: messageType,
       qosProfile: qosProfile,
       bridge: this,
-      data_callback: data_callback,
+      data_callback: dataCallback,
     );
     topics[topicName]!.isSubscriber = true;
 
@@ -256,15 +256,15 @@ class ROS2Bridge {
   }
 
   Future<List<SetParametersResult>> set_parameters(
-      String node_name, List<Param> params) async {
+      String nodeName, List<Param> params) async {
     String opID = Random().nextInt(100000).toString();
 
-    List<Map<String, dynamic>> _params = paramListToJsonObj(params);
+    List<Map<String, dynamic>> params0 = paramListToJsonObj(params);
     Map<String, dynamic> message = {
       'op': 'set_parameters',
       'opID': opID,
-      'node_name': node_name,
-      'params': _params,
+      'node_name': nodeName,
+      'params': params0,
     };
     sendRaw(json.encode(message));
 

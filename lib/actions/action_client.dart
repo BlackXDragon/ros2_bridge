@@ -20,7 +20,7 @@ class Goal {
   GoalStatus status = GoalStatus.PENDING;
   late Future<ROS2Message> resultFuture;
   ROS2Message? result;
-  final Completer<ROS2Message> completer = new Completer<ROS2Message>();
+  final Completer<ROS2Message> completer = Completer<ROS2Message>();
 
   Stream<ROS2Message> get feedbackStream => feedbackStreamController.stream;
   Stream<GoalStatus> get statusStream => statusStreamController.stream;

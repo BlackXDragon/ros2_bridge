@@ -43,10 +43,27 @@ class ROS2Topic {
     }
     bool fieldsMatch = true;
     for (int i = 0; i < data.fields.length; i++) {
-      if (data.fields[i].name != messageType.fields[i].name ||
-          data.fields[i].type != messageType.fields[i].type) {
+      if (data.fields[i].name != messageType.fields[i].name) {
+        // print('${data.fields[i].name} != ${messageType.fields[i].name}');
         fieldsMatch = false;
         break;
+      }
+      if (messageType.fields[i].type is ROS2Message) {
+        var type1 = messageType.fields[i].type as ROS2Message;
+        var type2 = data.fields[i].type as ROS2Message;
+        if (type1.name != type2.name) {
+          // print('${type1.name} != ${type2.name}');
+          fieldsMatch = false;
+          break;
+        }
+      } else {
+        var type1 = messageType.fields[i].type as FieldType;
+        var type2 = data.fields[i].type as FieldType;
+        if (type1 != type2) {
+          // print('$type1 != $type2');
+          fieldsMatch = false;
+          break;
+        }
       }
     }
     if (!fieldsMatch) {
